@@ -363,3 +363,38 @@ MigrationBackup/
 FodyWeavers.xsd
 
 .idea/
+
+# HsMod local build and release artifacts
+/dist/
+/downloads/
+*.zip
+*.7z
+*.rar
+*.tar
+*.tar.gz
+*.tgz
+*.gz
+*.msi
+*.msix
+*.msixbundle
+*.appxupload
+*.appinstaller
+*.exe
+*.dmp
+*.bak
+*.old
+
+# Keep the bundled BepInEx payload required by the manager installer.
+!HsModManager/Payload/BepInEx_win_x64_*.zip
+
+# Files created when a Hearthstone/BepInEx installation is copied into the repo.
+/BepInEx/
+/doorstop_config.ini
+/winhttp.dll
+/.doorstop_version
+/changelog.txt
+/CardTexturesDownload/
+
+# OS/editor leftovers
+Thumbs.db
+.DS_Store
