@@ -311,6 +311,7 @@ namespace HsMod
                     ["hsunitid"] = CommandConfig.GlobalHSUnitID,
                     ["mode"] = SafeGetString(() => SceneMgr.Get()?.GetMode().ToString())
                 },
+                ["pets"] = GetPetDiagnostics(),
                 ["web"] = new Dictionary<string, object>
                 {
                     ["port"] = CommandConfig.webServerPort,
@@ -327,6 +328,97 @@ namespace HsMod
             };
 
             return Newtonsoft.Json.JsonConvert.SerializeObject(result);
+        }
+
+        private static Dictionary<string, object> GetPetDiagnostics()
+        {
+            int friendlyTag = -1;
+            int opposingTag = -1;
+            int friendlyContextCorner = 0;
+            int opposingContextCorner = 0;
+            bool boardReady = false;
+            bool boardCompatible = false;
+            bool friendlySpellLoaded = false;
+            bool opposingSpellLoaded = false;
+            bool friendlySpellActive = false;
+            bool opposingSpellActive = false;
+            bool friendlyControllerFound = false;
+            bool opposingControllerFound = false;
+            int friendlyControllerVariant = 0;
+            int opposingControllerVariant = 0;
+            bool friendlyModelLoaded = false;
+            bool opposingModelLoaded = false;
+            bool friendlyModelVisible = false;
+            bool opposingModelVisible = false;
+
+            try
+            {
+                GameState gameState = GameState.Get();
+                friendlyTag = gameState?.GetPlayerBySide(Player.Side.FRIENDLY)?.GetTag(GAME_TAG.PET_VARIANT_ID) ?? -1;
+                opposingTag = gameState?.GetPlayerBySide(Player.Side.OPPOSING)?.GetTag(GAME_TAG.PET_VARIANT_ID) ?? -1;
+
+                Board board = Board.Get();
+                boardReady = board != null;
+                boardCompatible = board?.IsCornerReplacementCompatible() ?? false;
+
+                CornerSpellReplacementManager manager = gameState?.GetCornerReplacementManager();
+                if (manager != null)
+                {
+                    friendlyContextCorner = (int)manager.GetCornerReplacementContext(Player.Side.FRIENDLY).cornerReplacementPetType;
+                    opposingContextCorner = (int)manager.GetCornerReplacementContext(Player.Side.OPPOSING).cornerReplacementPetType;
+                    Spell friendlySpell = manager.GetCornerSpell(CornerReplacementPosition.BOTTOM_LEFT);
+                    Spell opposingSpell = manager.GetCornerSpell(CornerReplacementPosition.TOP_RIGHT);
+                    friendlySpellLoaded = friendlySpell != null;
+                    opposingSpellLoaded = opposingSpell != null;
+                    friendlySpellActive = friendlySpell?.IsActive() ?? false;
+                    opposingSpellActive = opposingSpell?.IsActive() ?? false;
+
+                    PetControllerGame friendlyController = friendlySpell?.GetComponentInChildren<PetControllerGame>(true);
+                    PetControllerGame opposingController = opposingSpell?.GetComponentInChildren<PetControllerGame>(true);
+                    friendlyControllerFound = friendlyController != null;
+                    opposingControllerFound = opposingController != null;
+                    friendlyControllerVariant = friendlyController?.PetVariantId ?? 0;
+                    opposingControllerVariant = opposingController?.PetVariantId ?? 0;
+                    friendlyModelLoaded = friendlyController?.PetObject != null;
+                    opposingModelLoaded = opposingController?.PetObject != null;
+                    friendlyModelVisible = friendlyController?.PetObject?.activeInHierarchy ?? false;
+                    opposingModelVisible = opposingController?.PetObject?.activeInHierarchy ?? false;
+                }
+            }
+            catch
+            {
+            }
+
+            PetVariantDbfRecord friendlyPet = friendlyTag > 0 ? GameDbf.PetVariant.GetRecord(friendlyTag) : null;
+            PetVariantDbfRecord opposingPet = opposingTag > 0 ? GameDbf.PetVariant.GetRecord(opposingTag) : null;
+
+            return new Dictionary<string, object>
+            {
+                ["configuredFriendly"] = skinPet?.Value ?? -1,
+                ["configuredOpposing"] = skinOpposingPet?.Value ?? -1,
+                ["actualFriendly"] = friendlyTag,
+                ["actualOpposing"] = opposingTag,
+                ["friendlyCorner"] = friendlyPet?.CornerId ?? 0,
+                ["opposingCorner"] = opposingPet?.CornerId ?? 0,
+                ["friendlyName"] = SafeGetString(() => friendlyPet?.Name.GetString()),
+                ["opposingName"] = SafeGetString(() => opposingPet?.Name.GetString()),
+                ["friendlyContextCorner"] = friendlyContextCorner,
+                ["opposingContextCorner"] = opposingContextCorner,
+                ["boardReady"] = boardReady,
+                ["boardCompatible"] = boardCompatible,
+                ["friendlySpellLoaded"] = friendlySpellLoaded,
+                ["opposingSpellLoaded"] = opposingSpellLoaded,
+                ["friendlySpellActive"] = friendlySpellActive,
+                ["opposingSpellActive"] = opposingSpellActive,
+                ["friendlyControllerFound"] = friendlyControllerFound,
+                ["opposingControllerFound"] = opposingControllerFound,
+                ["friendlyControllerVariant"] = friendlyControllerVariant,
+                ["opposingControllerVariant"] = opposingControllerVariant,
+                ["friendlyModelLoaded"] = friendlyModelLoaded,
+                ["opposingModelLoaded"] = opposingModelLoaded,
+                ["friendlyModelVisible"] = friendlyModelVisible,
+                ["opposingModelVisible"] = opposingModelVisible
+            };
         }
 
         public static string GetSkinCatalogJson()
@@ -396,6 +488,10 @@ namespace HsMod
                     case "reloadSkins":
                         LoadSkinsConfigFromFile();
                         res = "skins reloaded.";
+                        return 200;
+                    case "refreshPetCorners":
+                        Patcher.PatchFavorite.RefreshPetCorners();
+                        res = "pet corners refreshed.";
                         return 200;
                     case "restartWeb":
                         WebServer.Restart();

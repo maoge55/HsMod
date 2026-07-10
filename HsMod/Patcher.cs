@@ -2269,28 +2269,12 @@ namespace HsMod
 
         public class PatchFavorite
         {
-            [HarmonyPrefix]
-            [HarmonyPatch(typeof(CornerSpellReplacementManager), "UpdateCornerReplacements")]
-            private static void PatchUpdateCornerReplacements(ref CornerReplacementContext friendlyNewContext)
+            public static void RefreshPetCorners()
             {
-                try
-                {
-                    if (skinPet.Value != -1)
-                    {
-                        Player playerBySide2 = GameState.Get()?.GetPlayerBySide(Player.Side.FRIENDLY);
-                        playerBySide2?.SetTag(GAME_TAG.PET_VARIANT_ID, 0);
-                    }
-
-                    if (skinOpposingPet.Value != -1)
-                    {
-                        Player playerBySide2 = GameState.Get()?.GetPlayerBySide(Player.Side.OPPOSING);
-                        playerBySide2?.SetTag(GAME_TAG.PET_VARIANT_ID, 0);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Utils.MyLogger(BepInEx.Logging.LogLevel.Error, ex);
-                }
+                // A visible pet model requires a server-created cosmetic entity.
+                // Refresh only the native scene state; do not synthesize network entities locally.
+                CornerSpellReplacementManager manager = GameState.Get()?.GetCornerReplacementManager();
+                manager?.UpdateCornerReplacements();
             }
 
 

@@ -322,7 +322,7 @@
                             </Grid.ColumnDefinitions>
                             <StackPanel VerticalAlignment="Center">
                                 <TextBlock Text="皮肤设置" FontSize="18" FontWeight="Bold"/>
-                                <TextBlock Text="保存后会热加载并刷新当前场景，无需重启炉石；对局中可能发生一次自动重连。" Style="{StaticResource EffectTipStyle}"/>
+                                <TextBlock Text="英雄等对局资源从下一局生效；宠物列表仅供识别，当前版本不进行本地强制切换。" Style="{StaticResource EffectTipStyle}"/>
                             </StackPanel>
                             <Button x:Name="RefreshSkinListButton"
                                     Grid.Column="1"
@@ -394,11 +394,11 @@
                                         </StackPanel>
                                         <StackPanel Margin="0,0,12,12">
                                             <TextBlock Text="宠物"/>
-                                            <controls:SearchableSkinComboBox x:Name="PetComboBox" Tag="skinPet"/>
+                                            <controls:SearchableSkinComboBox x:Name="PetComboBox" Tag="skinPet" IsEnabled="False"/>
                                         </StackPanel>
                                         <StackPanel Margin="0,0,12,12">
                                             <TextBlock Text="对手宠物"/>
-                                            <controls:SearchableSkinComboBox x:Name="OpposingPetComboBox" Tag="skinOpposingPet"/>
+                                            <controls:SearchableSkinComboBox x:Name="OpposingPetComboBox" Tag="skinOpposingPet" IsEnabled="False"/>
                                         </StackPanel>
                                     </UniformGrid>
                                 </StackPanel>

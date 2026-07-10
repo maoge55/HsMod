@@ -1232,9 +1232,7 @@ public partial class MainWindow : Window
                 BoardComboBox,
                 BgsBoardComboBox,
                 BgsFinisherComboBox,
-                BobComboBox,
-                PetComboBox,
-                OpposingPetComboBox
+                BobComboBox
             ];
 
             foreach (SearchableSkinComboBox comboBox in globalSkinCombos)
@@ -1258,14 +1256,14 @@ public partial class MainWindow : Window
             }
 
             _skinCatalog.HsSkins = configContent;
-            ApiResult apply = await _bridge.RunActionAsync("simulateDisconnect", ct);
+            ApiResult apply = await _bridge.RunActionAsync("refreshPetCorners", ct);
             if (!apply.IsSuccess)
             {
-                AddLog($"皮肤已保存并热加载，但当前场景刷新失败：{apply.Output ?? apply.Error}", "WARN");
+                AddLog($"皮肤已保存，将在下一局生效；当前场景刷新失败：{apply.Output ?? apply.Error}", "WARN");
             }
             else
             {
-                AddLog("职业和其他皮肤已保存、热加载并应用。随机职业皮肤会在每场对战切换。");
+                AddLog("皮肤已保存；英雄等对局资源将在下一局生效。宠物列表仅供识别，不进行本地强制切换。");
             }
 
             WpfMessageBox.Show("皮肤设置已保存并应用。", "应用成功", MessageBoxButton.OK, MessageBoxImage.Information);
