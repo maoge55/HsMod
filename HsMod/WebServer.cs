@@ -258,6 +258,107 @@ namespace HsMod
                     await writer.WriteLineAsync(output);
                 }
             }
+            else if (rawUrLower == "/api/status" && request.HttpMethod == "GET")
+            {
+                context.Response.ContentType = "application/json; charset=UTF-8";
+                string output;
+                try
+                {
+                    output = WebApi.GetStatusJson();
+                }
+                catch (Exception ex)
+                {
+                    context.Response.StatusCode = 500;
+                    output = Newtonsoft.Json.JsonConvert.SerializeObject(new Dictionary<string, object>
+                    {
+                        ["error"] = ex.Message
+                    });
+                }
+                using (var writer = new StreamWriter(context.Response.OutputStream))
+                {
+                    await writer.WriteLineAsync(output);
+                }
+            }
+            else if (rawUrLower == "/api/skins" && request.HttpMethod == "GET")
+            {
+                context.Response.ContentType = "application/json; charset=UTF-8";
+                string output;
+                try
+                {
+                    output = WebApi.GetSkinCatalogJson();
+                }
+                catch (Exception ex)
+                {
+                    context.Response.StatusCode = 500;
+                    output = Newtonsoft.Json.JsonConvert.SerializeObject(new Dictionary<string, object>
+                    {
+                        ["error"] = ex.Message
+                    });
+                }
+                using (var writer = new StreamWriter(context.Response.OutputStream))
+                {
+                    await writer.WriteLineAsync(output);
+                }
+            }
+            else if (rawUrLower == "/api/skin-settings" && request.HttpMethod == "GET")
+            {
+                context.Response.ContentType = "application/json; charset=UTF-8";
+                string output;
+                try
+                {
+                    output = WebApi.GetSkinSettingsJson();
+                }
+                catch (Exception ex)
+                {
+                    context.Response.StatusCode = 500;
+                    output = Newtonsoft.Json.JsonConvert.SerializeObject(new Dictionary<string, object>
+                    {
+                        ["error"] = ex.Message
+                    });
+                }
+                using (var writer = new StreamWriter(context.Response.OutputStream))
+                {
+                    await writer.WriteLineAsync(output);
+                }
+            }
+            else if (rawUrLower == "/api/action" && request.HttpMethod == "POST")
+            {
+                context.Response.ContentType = "application/json; charset=UTF-8";
+                string output = string.Empty;
+                try
+                {
+                    using (var reader = new StreamReader(request.InputStream))
+                    {
+                        string requestBody = await reader.ReadToEndAsync();
+                        Utils.MyLogger(BepInEx.Logging.LogLevel.Debug, $"POST: {requestBody}");
+                        var json = Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<string, string>>(requestBody);
+                        if (json != null && json.TryGetValue("action", out string action))
+                        {
+                            context.Response.StatusCode = WebApi.RunAction(action, out string actionOutput);
+                            output = actionOutput;
+                        }
+                        else
+                        {
+                            context.Response.StatusCode = 400;
+                            output = "Invalid request: 'action' field is required.";
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    context.Response.StatusCode = 500;
+                    output = $"Error action: {ex.Message}";
+                }
+
+                using (var writer = new StreamWriter(context.Response.OutputStream))
+                {
+                    await writer.WriteLineAsync(Newtonsoft.Json.JsonConvert.SerializeObject(new Dictionary<string, object>
+                    {
+                        ["status"] = context.Response.StatusCode,
+                        ["output"] = output
+                    }));
+                }
+            }
             else
             {
                 context.Response.ContentType = DetermineContentType(rawUrLower);

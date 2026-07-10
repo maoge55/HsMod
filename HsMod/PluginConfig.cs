@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using UnityEngine;
 
 namespace HsMod
@@ -503,21 +504,29 @@ namespace HsMod
             HeroesMapping.Clear();
             if (File.Exists(file))
             {
+                var random = new System.Random();
                 foreach (string line in File.ReadLines(file))
                 {
-                    if (line.StartsWith("#"))
+                    string currentLine = line.Trim();
+                    if (string.IsNullOrEmpty(currentLine) || currentLine.StartsWith("#"))
                         continue;
-                    else
+
+                    string[] parts = currentLine.Split(new[] { ':' }, 2);
+                    if (parts.Length != 2 || !int.TryParse(parts[0].Trim(), out int sourceId) || HeroesMapping.ContainsKey(sourceId))
                     {
-                        string[] parts = line.Split(':');
-                        if (parts.Length == 2)
-                        {
-                            if (!HeroesMapping.ContainsKey(int.Parse(parts[0].Trim())))
-                            {
-                                string[] skins = parts[1].Split(',');
-                                HeroesMapping.Add(int.Parse(parts[0].Trim()), int.Parse(skins[new System.Random().Next(skins.Length)].Trim()));
-                            }
-                        }
+                        continue;
+                    }
+
+                    int[] skins = parts[1]
+                        .Split(',')
+                        .Select(value => int.TryParse(value.Trim(), out int skinId) ? skinId : -1)
+                        .Where(skinId => skinId > 0)
+                        .Distinct()
+                        .ToArray();
+
+                    if (skins.Length > 0)
+                    {
+                        HeroesMapping.Add(sourceId, skins[random.Next(skins.Length)]);
                     }
                 }
             }

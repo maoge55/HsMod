@@ -1224,20 +1224,14 @@ namespace HsMod
         {
             if (!isEulaRead.Value)
             {
-                UIStatus.Get()?.AddInfo(LocalizationManager.GetLangValue("hsmod.declaration"), 23.333f);
                 AlertPopup.PopupInfo popupInfo = new AlertPopup.PopupInfo();
-                popupInfo.m_headerText = "HsMod End-User License Agreement";
-                popupInfo.m_text = LocalizationManager.GetLangValue("hsmod.declaration");
+                popupInfo.m_headerText = string.Empty;
+                popupInfo.m_text = "本插件由Maoge55开发";
                 popupInfo.m_showAlertIcon = false;
                 popupInfo.m_responseDisplay = AlertPopup.ResponseDisplay.OK;
                 popupInfo.m_attentionCategory = UserAttentionBlocker.NONE;
                 DialogManager.Get()?.ShowPopup(popupInfo);
                 isEulaRead.Value = true;
-            }
-            else
-            {
-                if ((Localization.GetLocale() == Locale.zhCN) || (pluginInitLanague.Value == "zhCN") || (string.Compare(System.Globalization.CultureInfo.CurrentCulture.Name, "zh-CN") == 0))
-                    UIStatus.Get()?.AddInfo(LocalizationManager.GetLangValue("hsmod.declaration"), 6.666f);
             }
         }
 

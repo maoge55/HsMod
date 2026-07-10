@@ -273,6 +273,376 @@ namespace HsMod
             return Newtonsoft.Json.JsonConvert.SerializeObject(result);
         }
 
+        public static string GetStatusJson()
+        {
+            var patches = new List<Dictionary<string, object>>();
+            for (int i = 0; i < PatchManager.AllHarmonyName.Count; i++)
+            {
+                int methodCount = 0;
+                try
+                {
+                    methodCount = PatchManager.AllHarmony[i].GetPatchedMethods().Count();
+                }
+                catch { }
+
+                patches.Add(new Dictionary<string, object>
+                {
+                    ["name"] = PatchManager.AllHarmonyName[i],
+                    ["methodCount"] = methodCount
+                });
+            }
+
+            var result = new Dictionary<string, object>
+            {
+                ["plugin"] = new Dictionary<string, object>
+                {
+                    ["guid"] = PluginInfo.PLUGIN_GUID,
+                    ["name"] = PluginInfo.PLUGIN_NAME,
+                    ["author"] = PluginInfo.PLUGIN_AUTHOR,
+                    ["version"] = PluginInfo.PLUGIN_VERSION,
+                    ["enabled"] = isPluginEnable?.Value ?? false,
+                    ["language"] = pluginInitLanague?.Value ?? "UNKNOWN",
+                    ["runningTime"] = ConfigValue.Get().RunningTime
+                },
+                ["game"] = new Dictionary<string, object>
+                {
+                    ["pid"] = Process.GetCurrentProcess()?.Id ?? -1,
+                    ["login"] = Utils.CacheLoginStatus,
+                    ["hsunitid"] = CommandConfig.GlobalHSUnitID,
+                    ["mode"] = SafeGetString(() => SceneMgr.Get()?.GetMode().ToString())
+                },
+                ["web"] = new Dictionary<string, object>
+                {
+                    ["port"] = CommandConfig.webServerPort,
+                    ["root"] = HsModWebSite
+                },
+                ["paths"] = new Dictionary<string, object>
+                {
+                    ["gameRoot"] = BepInEx.Paths.GameRootPath,
+                    ["bepInExRoot"] = BepInEx.Paths.BepInExRootPath,
+                    ["config"] = BepInEx.Paths.ConfigPath,
+                    ["hsMatchLog"] = CommandConfig.hsMatchLogPath
+                },
+                ["patches"] = patches
+            };
+
+            return Newtonsoft.Json.JsonConvert.SerializeObject(result);
+        }
+
+        public static string GetSkinCatalogJson()
+        {
+            var result = new Dictionary<string, object>
+            {
+                ["current"] = GetCurrentSkinSettings(),
+                ["catalog"] = new Dictionary<string, object>
+                {
+                    ["coins"] = GetCoins(),
+                    ["cardBacks"] = GetCardBacks(),
+                    ["boards"] = GetBoards(),
+                    ["battlegroundBoards"] = GetBattlegroundBoards(),
+                    ["battlegroundFinishers"] = GetBattlegroundFinishers(),
+                    ["heroes"] = GetHeroes("HERO"),
+                    ["battlegroundHeroes"] = GetHeroes("BATTLEGROUNDS_HERO"),
+                    ["bobs"] = GetHeroes("BATTLEGROUNDS_GUIDE"),
+                    ["pets"] = GetPets()
+                },
+                ["hsskins"] = ReadHsSkinsCfg()
+            };
+
+            return Newtonsoft.Json.JsonConvert.SerializeObject(result);
+        }
+
+        public static string GetSkinSettingsJson()
+        {
+            var result = new Dictionary<string, object>
+            {
+                ["current"] = GetCurrentSkinSettings(),
+                ["hsskins"] = ReadHsSkinsCfg()
+            };
+
+            return Newtonsoft.Json.JsonConvert.SerializeObject(result);
+        }
+
+        private static Dictionary<string, object> GetCurrentSkinSettings()
+        {
+            return new Dictionary<string, object>
+            {
+                ["skinCoin"] = skinCoin?.Value ?? -1,
+                ["skinCardBack"] = skinCardBack?.Value ?? -1,
+                ["skinBoard"] = skinBoard?.Value ?? -1,
+                ["skinBgsBoard"] = skinBgsBoard?.Value ?? -1,
+                ["skinBgsFinisher"] = skinBgsFinisher?.Value ?? -1,
+                ["skinBob"] = skinBob?.Value ?? -1,
+                ["skinHero"] = skinHero?.Value ?? -1,
+                ["skinOpposingHero"] = skinOpposingHero?.Value ?? -1,
+                ["skinPet"] = skinPet?.Value ?? -1,
+                ["skinOpposingPet"] = skinOpposingPet?.Value ?? -1
+            };
+        }
+
+        public static int RunAction(string action, out string res)
+        {
+            res = string.Empty;
+            if (string.IsNullOrEmpty(action))
+            {
+                res = "action is required.";
+                return 400;
+            }
+
+            try
+            {
+                switch (action)
+                {
+                    case "reloadSkins":
+                        LoadSkinsConfigFromFile();
+                        res = "skins reloaded.";
+                        return 200;
+                    case "restartWeb":
+                        WebServer.Restart();
+                        res = "web server restarted.";
+                        return 200;
+                    case "simulateDisconnect":
+                        Network.Get()?.SimulateUncleanDisconnectFromGameServer();
+                        res = "disconnect simulated.";
+                        return 200;
+                    case "readNewCards":
+                        Utils.TryReadNewCards();
+                        res = "new cards marked as read.";
+                        return 200;
+                    case "toggleFps":
+                        isShowFPSEnable.Value = !isShowFPSEnable.Value;
+                        res = isShowFPSEnable.Value.ToString();
+                        return 200;
+                    default:
+                        res = "action not supported.";
+                        return 404;
+                }
+            }
+            catch (Exception ex)
+            {
+                res = ex.Message;
+                return 500;
+            }
+        }
+
+        private static string SafeGetString(Func<string> func, string fallback = "")
+        {
+            try
+            {
+                return func() ?? fallback;
+            }
+            catch
+            {
+                return fallback;
+            }
+        }
+
+        private static Dictionary<string, object> SkinItem(int id, string name, string category, string extra = "", string heroClass = "")
+        {
+            if (string.IsNullOrEmpty(name))
+            {
+                name = $"{category} {id}";
+            }
+
+            return new Dictionary<string, object>
+            {
+                ["id"] = id,
+                ["name"] = name,
+                ["category"] = category,
+                ["extra"] = extra,
+                ["heroClass"] = heroClass
+            };
+        }
+
+        private static List<Dictionary<string, object>> GetCoins()
+        {
+            var list = new List<Dictionary<string, object>> { SkinItem(-1, "不修改", "coin") };
+            try
+            {
+                foreach (var record in GameDbf.CosmeticCoin.GetRecords().OrderBy(x => x.ID).ToList())
+                {
+                    if (record != null)
+                    {
+                        list.Add(SkinItem(record.CardId, SafeGetString(() => record.Name.GetString(), $"幸运币 {record.CardId}"), "coin"));
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                list.Add(SkinItem(-999, $"幸运币读取失败：{ex.Message}", "error"));
+            }
+            return list;
+        }
+
+        private static List<Dictionary<string, object>> GetCardBacks()
+        {
+            var list = new List<Dictionary<string, object>> { SkinItem(-1, "不修改", "cardBack") };
+            try
+            {
+                foreach (var record in GameDbf.CardBack.GetRecords().OrderBy(x => x.ID).ToList())
+                {
+                    if (record != null)
+                    {
+                        list.Add(SkinItem(record.ID, SafeGetString(() => record.Name.GetString(), $"卡背 {record.ID}"), "cardBack"));
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                list.Add(SkinItem(-999, $"卡背读取失败：{ex.Message}", "error"));
+            }
+            return list;
+        }
+
+        private static List<Dictionary<string, object>> GetBoards()
+        {
+            var list = new List<Dictionary<string, object>> { SkinItem(-1, "不修改", "board") };
+            try
+            {
+                foreach (var record in GameDbf.Board.GetRecords().OrderBy(x => x.ID).ToList())
+                {
+                    if (record != null)
+                    {
+                        string name = SafeGetString(() => record.NoteDesc.ToString(), $"对战面板 {record.ID}");
+                        list.Add(SkinItem(record.ID, name, "board"));
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                list.Add(SkinItem(-999, $"对战面板读取失败：{ex.Message}", "error"));
+            }
+            return list;
+        }
+
+        private static List<Dictionary<string, object>> GetBattlegroundBoards()
+        {
+            var list = new List<Dictionary<string, object>> { SkinItem(-1, "不修改", "battlegroundBoard") };
+            try
+            {
+                foreach (var record in GameDbf.BattlegroundsBoardSkin.GetRecords().OrderBy(x => x.ID).ToList())
+                {
+                    if (record != null)
+                    {
+                        list.Add(SkinItem(record.ID, SafeGetString(() => record.CollectionName.GetString(), $"酒馆战斗面板 {record.ID}"), "battlegroundBoard"));
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                list.Add(SkinItem(-999, $"酒馆战斗面板读取失败：{ex.Message}", "error"));
+            }
+            return list;
+        }
+
+        private static List<Dictionary<string, object>> GetBattlegroundFinishers()
+        {
+            var list = new List<Dictionary<string, object>> { SkinItem(-1, "不修改", "battlegroundFinisher") };
+            try
+            {
+                foreach (var record in GameDbf.BattlegroundsFinisher.GetRecords().OrderBy(x => x.ID).ToList())
+                {
+                    if (record != null)
+                    {
+                        list.Add(SkinItem(record.ID, SafeGetString(() => record.CollectionName.GetString(), $"酒馆击杀特效 {record.ID}"), "battlegroundFinisher"));
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                list.Add(SkinItem(-999, $"酒馆击杀特效读取失败：{ex.Message}", "error"));
+            }
+            return list;
+        }
+
+        private static List<Dictionary<string, object>> GetHeroes(string heroType)
+        {
+            var list = new List<Dictionary<string, object>> { SkinItem(-1, "不修改", heroType) };
+            try
+            {
+                foreach (var record in GameDbf.CardHero.GetRecords().OrderBy(x => x.HeroType).ThenBy(x => x.CardId).ToList())
+                {
+                    if (record == null)
+                    {
+                        continue;
+                    }
+
+                    string currentType = record.HeroType.ToString();
+                    if (heroType == "HERO")
+                    {
+                        if (currentType == "BATTLEGROUNDS_HERO" || currentType == "BATTLEGROUNDS_GUIDE")
+                        {
+                            continue;
+                        }
+                    }
+                    else if (currentType != heroType)
+                    {
+                        continue;
+                    }
+
+                    string name = SafeGetString(() => GameDbf.Card.GetRecord(record.CardId).Name.GetString(), $"英雄 {record.CardId}");
+                    string heroClass = SafeGetString(() => DefLoader.Get().GetEntityDef(record.CardId).GetClass().ToString());
+                    list.Add(SkinItem(record.CardId, name, heroType, currentType, heroClass));
+                }
+            }
+            catch (Exception ex)
+            {
+                list.Add(SkinItem(-999, $"英雄读取失败：{ex.Message}", "error"));
+            }
+            return list;
+        }
+
+        private static List<Dictionary<string, object>> GetPets()
+        {
+            var list = new List<Dictionary<string, object>>
+            {
+                SkinItem(-1, "不修改", "pet"),
+                SkinItem(0, "隐藏", "pet")
+            };
+            try
+            {
+                foreach (var record in GameDbf.PetVariant.GetRecords().OrderBy(x => x.ID).ToList())
+                {
+                    if (record != null)
+                    {
+                        list.Add(SkinItem(record.ID, SafeGetString(() => record.Name.GetString(), $"宠物 {record.ID}"), "pet", record.PetId.ToString()));
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                list.Add(SkinItem(-999, $"宠物读取失败：{ex.Message}", "error"));
+            }
+            return list;
+        }
+
+        private static string ReadHsSkinsCfg()
+        {
+            string cfgPath = Path.Combine(BepInEx.Paths.ConfigPath, CommandConfig.GlobalHSUnitID, "HsSkins.cfg");
+            if (!File.Exists(cfgPath))
+            {
+                cfgPath = Path.Combine(BepInEx.Paths.ConfigPath, "HsSkins.cfg");
+            }
+
+            if (!File.Exists(cfgPath))
+            {
+                return string.Empty;
+            }
+
+            try
+            {
+                using (FileStream fs = new FileStream(cfgPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                using (StreamReader reader = new StreamReader(fs))
+                {
+                    return reader.ReadToEnd();
+                }
+            }
+            catch (Exception ex)
+            {
+                return $"# 读取 HsSkins.cfg 失败：{ex.Message}";
+            }
+        }
+
         private static string GetConfigType(Type type)
         {
             if (type == typeof(bool)) return "bool";

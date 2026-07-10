@@ -1,0 +1,50 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="..\HsMod\UnstrippedCorlib\*.dll"
+             Link="Payload\UnstrippedCorlib\%(Filename)%(Extension)"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\HsMod\Release\HsMod.dll"
+             Link="Payload\HsMod.dll"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest"
+             Condition="Exists('..\HsMod\Release\HsMod.dll')" />
+    <Content Include="PackageReadme.zh-CN.txt"
+             Link="README.zh-CN.txt"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="Payload\BepInEx_win_x64_*.zip"
+             Link="Payload\%(Filename)%(Extension)"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <Target Name="CopyPayloadAfterPublish" AfterTargets="Publish">
+    <ItemGroup>
+      <UnstrippedPayload Include="$(MSBuildProjectDirectory)\..\HsMod\UnstrippedCorlib\*.dll" />
+      <BepInExPayload Include="$(MSBuildProjectDirectory)\Payload\BepInEx_win_x64_*.zip" />
+    </ItemGroup>
+    <MakeDir Directories="$(PublishDir)Payload\UnstrippedCorlib" />
+    <Copy SourceFiles="@(UnstrippedPayload)"
+          DestinationFolder="$(PublishDir)Payload\UnstrippedCorlib"
+          SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(BepInExPayload)"
+          DestinationFolder="$(PublishDir)Payload"
+          SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(MSBuildProjectDirectory)\..\HsMod\Release\HsMod.dll"
+          DestinationFolder="$(PublishDir)Payload"
+          SkipUnchangedFiles="true"
+          Condition="Exists('$(MSBuildProjectDirectory)\..\HsMod\Release\HsMod.dll')" />
+  </Target>
+
+</Project>
