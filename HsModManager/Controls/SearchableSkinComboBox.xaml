@@ -1,0 +1,131 @@
+<UserControl x:Class="HsModManager.Controls.SearchableSkinComboBox"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Name="Root"
+             MinHeight="36">
+    <UserControl.Resources>
+        <Style TargetType="ListBoxItem">
+            <Setter Property="Foreground" Value="#294C6A"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="ItemBorder"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="5"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ItemBorder" Property="Background" Value="#E8F1FB"/>
+                                <Setter Property="Foreground" Value="#174E7A"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="ItemBorder" Property="Background" Value="#D9EAF8"/>
+                                <Setter Property="Foreground" Value="#123F63"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <ToggleButton x:Name="DropDownToggle"
+                      MinHeight="36"
+                      HorizontalContentAlignment="Stretch"
+                      Cursor="Hand">
+            <ToggleButton.Template>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Border x:Name="ToggleBorder"
+                            Background="#FFFFFF"
+                            BorderBrush="#AFC3D5"
+                            BorderThickness="1"
+                            CornerRadius="6"
+                            Padding="10,7">
+                        <ContentPresenter HorizontalAlignment="Stretch" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="ToggleBorder" Property="BorderBrush" Value="#5B91BD"/>
+                            <Setter TargetName="ToggleBorder" Property="Background" Value="#F8FBFE"/>
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="ToggleBorder" Property="BorderBrush" Value="#3579AD"/>
+                            <Setter TargetName="ToggleBorder" Property="Background" Value="#F4F9FD"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="ToggleBorder" Property="Opacity" Value="0.5"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </ToggleButton.Template>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock x:Name="SelectedTextBlock"
+                           Text="请选择"
+                           Foreground="#234A72"
+                           TextTrimming="CharacterEllipsis"
+                           VerticalAlignment="Center"/>
+                <TextBlock Grid.Column="1"
+                           Text="⌄"
+                           Foreground="#4E7392"
+                           FontSize="16"
+                           Margin="10,0,0,0"
+                           VerticalAlignment="Center"/>
+            </Grid>
+        </ToggleButton>
+
+        <Popup x:Name="DropDownPopup"
+               IsOpen="{Binding IsChecked, ElementName=DropDownToggle, Mode=TwoWay}"
+               PlacementTarget="{Binding ElementName=DropDownToggle}"
+               Placement="Bottom"
+               StaysOpen="False"
+               AllowsTransparency="True"
+               PopupAnimation="Fade"
+               Opened="DropDownPopup_Opened">
+            <Border Width="{Binding ActualWidth, ElementName=Root}"
+                    MinWidth="260"
+                    MaxHeight="360"
+                    Margin="0,4,0,0"
+                    Padding="8"
+                    Background="#FAFCFE"
+                    BorderBrush="#91ADC4"
+                    BorderThickness="1"
+                    CornerRadius="7">
+                <Border.Effect>
+                    <DropShadowEffect Color="#36536A" BlurRadius="12" ShadowDepth="3" Opacity="0.22"/>
+                </Border.Effect>
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                        <TextBlock Text="搜索皮肤" Foreground="#486983" FontSize="11" Margin="2,0,0,4"/>
+                        <TextBox x:Name="SearchTextBox"
+                                 Height="34"
+                                 Padding="9,5"
+                                 Foreground="#234A72"
+                                 Background="#FFFFFF"
+                                 BorderBrush="#AFC3D5"
+                                 ToolTip="输入中文皮肤名搜索"
+                                 TextChanged="SearchTextBox_TextChanged"/>
+                    </StackPanel>
+                    <ListBox x:Name="OptionsList"
+                             MaxHeight="292"
+                             BorderThickness="0"
+                             Background="#FAFCFE"
+                             DisplayMemberPath="Display"
+                             SelectionChanged="OptionsList_SelectionChanged"
+                             KeyDown="OptionsList_KeyDown"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto"/>
+                </DockPanel>
+            </Border>
+        </Popup>
+    </Grid>
+</UserControl>

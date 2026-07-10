@@ -2,11 +2,11 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using System.IO;
 using System.Text;
-using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Threading;
+using HsModManager.Controls;
 using HsModManager.Models;
 using HsModManager.Services;
 using WpfButton = System.Windows.Controls.Button;
@@ -29,11 +29,6 @@ public partial class MainWindow : Window
     private readonly SkinCatalogCacheService _skinCache = new();
     private readonly ObservableCollection<ConfigItem> _configItems = [];
     private readonly ObservableCollection<ClassSkinSelection> _classSkinSelections = [];
-    private readonly JsonSerializerOptions _prettyJson = new()
-    {
-        WriteIndented = true,
-        PropertyNameCaseInsensitive = true
-    };
 
     private SkinCatalogResponse? _skinCatalog;
     private WpfSlider? _timeGearSlider;
@@ -74,6 +69,7 @@ public partial class MainWindow : Window
 
     private readonly HashSet<string> _restartRequiredKeys = new(StringComparer.OrdinalIgnoreCase)
     {
+        "isPluginEnable",
         "pluginLanague",
         "webServerPort",
         "isInternalModeEnable",
@@ -254,7 +250,6 @@ public partial class MainWindow : Window
         _connectedPid = status.Game.Pid;
         _state.ConnectionText = $"已连接 PID {status.Game.Pid} / v{status.Plugin.Version}";
         _state.StatusText = automatic ? "已自动连接炉石客户端" : $"桥接成功：{_bridge.BaseUri}";
-        _ = Dispatcher.BeginInvoke(() => RemoteLogTextBox.Text = JsonSerializer.Serialize(status, _prettyJson));
 
         if (!isNewConnection && automatic)
         {
@@ -321,11 +316,9 @@ public partial class MainWindow : Window
         await RunButtonAsync(DetectButton, "正在自动寻找炉石安装目录...", async ct =>
         {
             List<InstallCandidate> candidates = await HearthstoneLocator.FindInstallationsAsync(ct);
-            InstallCandidatesComboBox.ItemsSource = candidates;
 
             if (candidates.Count > 0)
             {
-                InstallCandidatesComboBox.SelectedIndex = 0;
                 InstallPathTextBox.Text = candidates[0].Path;
                 AddLog($"找到 {candidates.Count} 个可能的炉石目录。");
             }
@@ -334,14 +327,6 @@ public partial class MainWindow : Window
                 AddLog("未自动找到炉石目录，请手动选择。", "WARN");
             }
         });
-    }
-
-    private void InstallCandidatesComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
-    {
-        if (InstallCandidatesComboBox.SelectedItem is InstallCandidate candidate)
-        {
-            InstallPathTextBox.Text = candidate.Path;
-        }
     }
 
     private void BrowseButton_Click(object sender, RoutedEventArgs e)
@@ -381,6 +366,52 @@ public partial class MainWindow : Window
             AddLog(result.Message);
             WpfMessageBox.Show(result.Message, "安装成功", MessageBoxButton.OK, MessageBoxImage.Information);
         });
+    }
+
+    private async void UninstallButton_Click(object sender, RoutedEventArgs e)
+    {
+        MessageBoxResult confirmation = WpfMessageBox.Show(
+            "卸载会先关闭炉石客户端，然后删除 HsMod 插件、备份、配置、工作目录和皮肤缓存。\n\n共享的 BepInEx、运行库和其他插件会保留。是否继续？",
+            "确认卸载 HsMod",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning,
+            MessageBoxResult.No);
+        if (confirmation != MessageBoxResult.Yes)
+        {
+            return;
+        }
+
+        await RunButtonAsync(UninstallButton, "正在卸载 HsMod...", async ct =>
+        {
+            var progress = new Progress<string>(message => AddLog(message));
+            InstallResult result = await _installer.UninstallAsync(InstallPathTextBox.Text, progress, ct);
+            AddLog(result.Message, result.Success ? "INFO" : "ERROR");
+
+            WpfMessageBox.Show(
+                result.Message,
+                result.Success ? "卸载完成" : "卸载失败",
+                MessageBoxButton.OK,
+                result.Success ? MessageBoxImage.Information : MessageBoxImage.Error);
+
+            if (result.Success)
+            {
+                MarkDisconnected(false);
+                _skinCatalog = new SkinCatalogResponse();
+                _classSkinSelections.Clear();
+            }
+        });
+    }
+
+    private void CopyInstallLogButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (string.IsNullOrWhiteSpace(InstallLogTextBox.Text))
+        {
+            AddLog("当前没有可复制的日志。", "WARN");
+            return;
+        }
+
+        System.Windows.Clipboard.SetText(InstallLogTextBox.Text);
+        _state.StatusText = "安装日志已复制到剪贴板";
     }
 
     private async void ReloadConfigButton_Click(object sender, RoutedEventArgs e)
@@ -445,7 +476,8 @@ public partial class MainWindow : Window
         {
             var wrap = new WrapPanel
             {
-                Orientation = WpfOrientation.Horizontal
+                Orientation = WpfOrientation.Horizontal,
+                Margin = new Thickness(8, 12, 0, 0)
             };
 
             List<ConfigItem> orderedItems = group.OrderBy(ItemOrder).ToList();
@@ -465,16 +497,60 @@ public partial class MainWindow : Window
                 wrap.Children.Add(CreateConfigCard(item));
             }
 
+            (string background, string border, string foreground) = GetGroupPalette(group.Key);
+            var header = new Border
+            {
+                Background = CreateBrush(background),
+                BorderBrush = CreateBrush(border),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(7),
+                Padding = new Thickness(13, 9, 13, 9),
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Stretch,
+                Child = new WpfTextBlock
+                {
+                    Text = $"{group.Key} ({group.Count()})",
+                    Foreground = CreateBrush(foreground),
+                    FontWeight = FontWeights.SemiBold,
+                    FontSize = 14
+                }
+            };
+
             var expander = new Expander
             {
-                Header = $"{group.Key} ({group.Count()})",
-                IsExpanded = group.Key is "全局" or "炉石" or "皮肤",
+                Header = header,
+                IsExpanded = false,
                 Margin = new Thickness(0, 0, 0, 12),
+                HorizontalContentAlignment = System.Windows.HorizontalAlignment.Stretch,
                 Content = wrap
             };
 
             ConfigGroupsPanel.Children.Add(expander);
         }
+    }
+
+    private static (string Background, string Border, string Foreground) GetGroupPalette(string group)
+    {
+        return group switch
+        {
+            "全局" => ("#DCEBFA", "#A9C7E3", "#24587F"),
+            "炉石" => ("#E2F2E8", "#AFD3BC", "#2E6543"),
+            "皮肤" => ("#F5E5EE", "#DAB5C9", "#7B3B5B"),
+            "酒馆" => ("#FFF0D8", "#E8CAA0", "#805A23"),
+            "佣兵" => ("#F1E9DA", "#D6C29E", "#72572B"),
+            "开包" => ("#E8E5F5", "#C3BBDD", "#554B7D"),
+            "优化" => ("#DFF1F1", "#ADD2D2", "#2E6666"),
+            "快捷键" => ("#E5ECF6", "#BBC9DC", "#405E7F"),
+            "好友" => ("#F8E8E1", "#E0BEB1", "#7D4D3A"),
+            "开发" => ("#E7EBEF", "#BBC5CE", "#4B5D6D"),
+            "模拟" => ("#F2E7DE", "#D7BEAA", "#76523B"),
+            "HsMod" => ("#E2EAF7", "#B6C7DF", "#3B5E86"),
+            _ => ("#E7EDF3", "#C2CED9", "#435D73")
+        };
+    }
+
+    private static System.Windows.Media.Brush CreateBrush(string color)
+    {
+        return (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFromString(color)!;
     }
 
     private Border CreateTimeGearCard(ConfigItem enableItem, ConfigItem speedItem)
@@ -553,6 +629,7 @@ public partial class MainWindow : Window
         Grid.SetColumn(increaseButton, 2);
         controls.Children.Add(increaseButton);
         panel.Children.Add(controls);
+        panel.Children.Add(CreateEffectTip(speedItem));
 
         return new Border
         {
@@ -701,6 +778,7 @@ public partial class MainWindow : Window
         });
 
         panel.Children.Add(CreateConfigEditor(item));
+        panel.Children.Add(CreateEffectTip(item));
 
         return new Border
         {
@@ -713,6 +791,24 @@ public partial class MainWindow : Window
             MinHeight = 170,
             Margin = new Thickness(0, 0, 12, 12),
             Child = panel
+        };
+    }
+
+    private WpfTextBlock CreateEffectTip(ConfigItem item)
+    {
+        string text = _restartRequiredKeys.Contains(item.Key)
+            ? "生效方式：需要重启炉石客户端"
+            : _disconnectSuggestedKeys.Contains(item.Key)
+                ? "生效方式：保存后热加载，对局中可能需要重新连接"
+                : "生效方式：实时生效";
+
+        return new WpfTextBlock
+        {
+            Text = text,
+            Foreground = CreateBrush("#B42318"),
+            FontSize = 11,
+            TextWrapping = TextWrapping.Wrap,
+            Margin = new Thickness(0, 8, 0, 0)
         };
     }
 
@@ -999,18 +1095,18 @@ public partial class MainWindow : Window
         });
     }
 
-    private void SetSkinCombo(WpfComboBox comboBox, List<SkinItem> items, string configKey)
+    private void SetSkinCombo(SearchableSkinComboBox comboBox, List<SkinItem> items, string configKey)
     {
         comboBox.ItemsSource = items;
         comboBox.Tag = configKey;
 
         if (_skinCatalog?.Current.TryGetValue(configKey, out int current) == true && items.Any(item => item.Id == current))
         {
-            comboBox.SelectedValue = current;
+            comboBox.SelectedId = current;
         }
         else
         {
-            comboBox.SelectedIndex = items.Count > 0 ? 0 : -1;
+            comboBox.SelectedId = items.Count > 0 ? items[0].Id : -1;
         }
     }
 
@@ -1129,7 +1225,7 @@ public partial class MainWindow : Window
                 throw new InvalidOperationException("请先连接炉石客户端，管理器会自动读取全部皮肤。");
             }
 
-            WpfComboBox[] globalSkinCombos =
+            SearchableSkinComboBox[] globalSkinCombos =
             [
                 CoinComboBox,
                 CardBackComboBox,
@@ -1141,11 +1237,11 @@ public partial class MainWindow : Window
                 OpposingPetComboBox
             ];
 
-            foreach (WpfComboBox comboBox in globalSkinCombos)
+            foreach (SearchableSkinComboBox comboBox in globalSkinCombos)
             {
-                if (comboBox.Tag is string key && comboBox.SelectedValue != null)
+                if (comboBox.Tag is string key)
                 {
-                    string value = Convert.ToString(comboBox.SelectedValue, CultureInfo.InvariantCulture) ?? "-1";
+                    string value = comboBox.SelectedId.ToString(CultureInfo.InvariantCulture);
                     await SaveRequiredConfigAsync(key, value, ct);
                 }
             }
@@ -1249,43 +1345,6 @@ public partial class MainWindow : Window
             .ToUpperInvariant();
     }
 
-    private async void RefreshStatusButton_Click(object sender, RoutedEventArgs e)
-    {
-        await RunButtonAsync(RefreshStatusButton, "正在刷新桥接状态...", async ct =>
-        {
-            StatusResponse? status = await _bridge.GetStatusAsync(ct);
-            RemoteLogTextBox.Text = JsonSerializer.Serialize(status, _prettyJson);
-            AddLog("状态已刷新。");
-        });
-    }
-
-    private async void ReadBepInExLogButton_Click(object sender, RoutedEventArgs e)
-    {
-        await RunButtonAsync(ReadBepInExLogButton, "正在读取 BepInEx 日志...", async ct =>
-        {
-            RemoteLogTextBox.Text = await _bridge.GetTextAsync("bepinex.min.log", ct);
-            AddLog("已读取 BepInEx 最近日志。");
-        });
-    }
-
-    private async void ReadMatchLogButton_Click(object sender, RoutedEventArgs e)
-    {
-        await RunButtonAsync(ReadMatchLogButton, "正在读取对局日志...", async ct =>
-        {
-            RemoteLogTextBox.Text = await _bridge.GetTextAsync("matchlog", ct);
-            AddLog("已读取对局日志页面。");
-        });
-    }
-
-    private async void RestartWebButton_Click(object sender, RoutedEventArgs e)
-    {
-        await RunButtonAsync(RestartWebButton, "正在重启插件 Web 服务...", async ct =>
-        {
-            ApiResult result = await _bridge.RunActionAsync("restartWeb", ct);
-            AddLog(result.IsSuccess ? "插件 Web 服务已重启。" : $"重启失败：{result.Output ?? result.Error}", result.IsSuccess ? "INFO" : "ERROR");
-        });
-    }
-
     private async Task RunButtonAsync(WpfButton button, string status, Func<CancellationToken, Task> action)
     {
         if (_state.IsBusy)
@@ -1329,6 +1388,12 @@ public partial class MainWindow : Window
             while (_state.Logs.Count > 300)
             {
                 _state.Logs.RemoveAt(_state.Logs.Count - 1);
+            }
+
+            if (InstallLogTextBox != null)
+            {
+                InstallLogTextBox.Text = string.Join(Environment.NewLine, _state.Logs.Select(entry => entry.Display));
+                InstallLogTextBox.ScrollToHome();
             }
         });
     }

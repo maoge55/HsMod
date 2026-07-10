@@ -70,6 +70,167 @@ public sealed class ModInstaller
         };
     }
 
+    public async Task<InstallResult> UninstallAsync(string hearthstoneRoot, IProgress<string> progress, CancellationToken cancellationToken = default)
+    {
+        if (!HearthstoneLocator.LooksLikeHearthstoneRoot(hearthstoneRoot))
+        {
+            return new InstallResult
+            {
+                Success = false,
+                HearthstonePath = hearthstoneRoot,
+                Message = "目标目录不像炉石客户端根目录，无法安全卸载。"
+            };
+        }
+
+        hearthstoneRoot = Path.GetFullPath(hearthstoneRoot);
+        progress.Report($"炉石目录：{hearthstoneRoot}");
+        await CloseHearthstoneAsync(progress, cancellationToken);
+
+        try
+        {
+            await Task.Run(() =>
+            {
+                string bepInExRoot = Path.Combine(hearthstoneRoot, "BepInEx");
+                string pluginsDir = Path.Combine(bepInExRoot, "plugins");
+                string configDir = Path.Combine(bepInExRoot, "config");
+                string workDir = Path.Combine(bepInExRoot, "HsMod");
+
+                DeleteMatchingFiles(pluginsDir, "HsMod.dll*", hearthstoneRoot, progress, cancellationToken);
+                DeleteMatchingFiles(configDir, "HsMod.cfg*", hearthstoneRoot, progress, cancellationToken);
+
+                if (Directory.Exists(configDir))
+                {
+                    foreach (string skinConfig in Directory.EnumerateFiles(configDir, "HsSkins.cfg", SearchOption.AllDirectories).ToList())
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        DeleteFile(skinConfig, hearthstoneRoot, progress);
+                    }
+                }
+
+                DeleteDirectory(workDir, hearthstoneRoot, progress);
+
+                string cachePath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "HsModManager",
+                    "skin-catalog.json");
+                if (File.Exists(cachePath))
+                {
+                    File.Delete(cachePath);
+                    progress.Report("已删除管理器皮肤缓存。");
+                }
+            }, cancellationToken);
+
+            progress.Report("已保留共享的 BepInEx、unstripped_corlib 和其他插件。");
+            return new InstallResult
+            {
+                Success = true,
+                HearthstonePath = hearthstoneRoot,
+                Message = "HsMod 已卸载。共享的 BepInEx 和其他插件未被删除。"
+            };
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return new InstallResult
+            {
+                Success = false,
+                HearthstonePath = hearthstoneRoot,
+                Message = "卸载 HsMod 失败：" + ex.Message
+            };
+        }
+    }
+
+    private static async Task CloseHearthstoneAsync(IProgress<string> progress, CancellationToken cancellationToken)
+    {
+        Process[] processes = Process.GetProcessesByName("Hearthstone");
+        if (processes.Length == 0)
+        {
+            progress.Report("炉石客户端未运行。");
+            return;
+        }
+
+        progress.Report("正在关闭炉石客户端...");
+        foreach (Process process in processes)
+        {
+            try
+            {
+                process.CloseMainWindow();
+            }
+            catch
+            {
+            }
+        }
+
+        await Task.Delay(1500, cancellationToken);
+        foreach (Process process in processes)
+        {
+            try
+            {
+                if (!process.HasExited)
+                {
+                    process.Kill(entireProcessTree: true);
+                }
+
+                await process.WaitForExitAsync(cancellationToken);
+            }
+            finally
+            {
+                process.Dispose();
+            }
+        }
+
+        progress.Report("炉石客户端已关闭。");
+    }
+
+    private static void DeleteMatchingFiles(
+        string directory,
+        string pattern,
+        string hearthstoneRoot,
+        IProgress<string> progress,
+        CancellationToken cancellationToken)
+    {
+        if (!Directory.Exists(directory))
+        {
+            return;
+        }
+
+        foreach (string file in Directory.EnumerateFiles(directory, pattern, SearchOption.TopDirectoryOnly).ToList())
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            DeleteFile(file, hearthstoneRoot, progress);
+        }
+    }
+
+    private static void DeleteFile(string path, string hearthstoneRoot, IProgress<string> progress)
+    {
+        string fullPath = EnsureInsideHearthstone(path, hearthstoneRoot);
+        File.Delete(fullPath);
+        progress.Report("已删除：" + Path.GetRelativePath(hearthstoneRoot, fullPath));
+    }
+
+    private static void DeleteDirectory(string path, string hearthstoneRoot, IProgress<string> progress)
+    {
+        string fullPath = EnsureInsideHearthstone(path, hearthstoneRoot);
+        if (!Directory.Exists(fullPath))
+        {
+            return;
+        }
+
+        Directory.Delete(fullPath, recursive: true);
+        progress.Report("已删除：" + Path.GetRelativePath(hearthstoneRoot, fullPath));
+    }
+
+    private static string EnsureInsideHearthstone(string path, string hearthstoneRoot)
+    {
+        string root = Path.GetFullPath(hearthstoneRoot).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+        string fullPath = Path.GetFullPath(path);
+        if (!fullPath.StartsWith(root, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("拒绝删除炉石目录之外的文件：" + fullPath);
+        }
+
+        return fullPath;
+    }
+
     private async Task DownloadAndExtractBepInExAsync(string hearthstoneRoot, IProgress<string> progress, CancellationToken cancellationToken)
     {
         string assetUrl = await FindBepInExAssetUrlAsync(cancellationToken);

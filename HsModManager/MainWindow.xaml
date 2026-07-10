@@ -4,20 +4,21 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:models="clr-namespace:HsModManager.Models"
+        xmlns:controls="clr-namespace:HsModManager.Controls"
         mc:Ignorable="d"
         Title="HsMod Manager"
         Width="1180"
         Height="760"
         MinWidth="980"
         MinHeight="640"
-        Background="#F5F7FA"
+        Background="#EEF3F8"
         FontFamily="Microsoft YaHei UI"
         WindowStartupLocation="CenterScreen">
     <Window.Resources>
         <SolidColorBrush x:Key="AccentBrush" Color="#2775D1"/>
         <SolidColorBrush x:Key="AccentDarkBrush" Color="#19599F"/>
-        <SolidColorBrush x:Key="TextBrush" Color="#172033"/>
-        <SolidColorBrush x:Key="MutedBrush" Color="#667085"/>
+        <SolidColorBrush x:Key="TextBrush" Color="#19344F"/>
+        <SolidColorBrush x:Key="MutedBrush" Color="#60758A"/>
         <SolidColorBrush x:Key="PanelBrush" Color="#FFFFFF"/>
         <SolidColorBrush x:Key="LineBrush" Color="#DFE5EF"/>
 
@@ -76,9 +77,41 @@
         </Style>
 
         <Style x:Key="SecondaryButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="Foreground" Value="#234A72"/>
             <Setter Property="Background" Value="#EEF4FF"/>
             <Setter Property="BorderBrush" Value="#C8D9F3"/>
+        </Style>
+
+        <Style x:Key="DangerButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+            <Setter Property="Background" Value="#C2413A"/>
+            <Setter Property="BorderBrush" Value="#A73530"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="DangerRoot"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="8"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="DangerRoot" Property="Background" Value="#A73530"/>
+                                <Setter TargetName="DangerRoot" Property="BorderBrush" Value="#8F2D29"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="DangerRoot" Property="Opacity" Value="0.82"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="DangerRoot" Property="Opacity" Value="0.45"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <Style TargetType="TextBox">
@@ -94,7 +127,21 @@
             <Setter Property="BorderBrush" Value="#C8D0DC"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Background" Value="#FFFFFF"/>
+            <Setter Property="Foreground" Value="#234A72"/>
             <Setter Property="MinHeight" Value="34"/>
+        </Style>
+
+        <Style TargetType="ComboBoxItem">
+            <Setter Property="Foreground" Value="#294C6A"/>
+            <Setter Property="Background" Value="#FAFCFE"/>
+            <Setter Property="Padding" Value="9,7"/>
+        </Style>
+
+        <Style x:Key="EffectTipStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#B42318"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="Margin" Value="0,5,0,0"/>
         </Style>
 
         <Style TargetType="TextBlock">
@@ -109,6 +156,7 @@
         <Style TargetType="TabItem">
             <Setter Property="Padding" Value="18,10"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#274C6B"/>
         </Style>
     </Window.Resources>
 
@@ -146,7 +194,7 @@
 
         <TabControl Grid.Row="1" Margin="20">
             <TabItem Header="一键安装">
-                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Background="#F3F7FC">
                     <Grid Margin="2">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="1.1*"/>
@@ -168,7 +216,6 @@
                                         <Button x:Name="BrowseButton" Grid.Column="1" Content="选择目录" Style="{StaticResource SecondaryButtonStyle}" Click="BrowseButton_Click" Margin="10,0,0,0"/>
                                         <Button x:Name="DetectButton" Grid.Column="2" Content="自动寻找" Click="DetectButton_Click" Margin="10,0,0,0"/>
                                     </Grid>
-                                    <ComboBox x:Name="InstallCandidatesComboBox" DisplayMemberPath="Path" SelectionChanged="InstallCandidatesComboBox_SelectionChanged" Margin="0,12,0,0"/>
                                 </StackPanel>
                             </Border>
 
@@ -176,15 +223,57 @@
                                 <StackPanel>
                                     <TextBlock Text="一键安装 HsMod" FontSize="18" FontWeight="Bold"/>
                                     <TextBlock Text="已有 BepInEx 时只追加本插件和缺失运行库；没有 BepInEx 时会尝试下载 x64 BepInEx 5。安装完成后会弹出提醒。" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,6,0,16"/>
-                                    <Button x:Name="InstallButton" Content="一键安装 / 更新 HsMod" FontSize="18" Padding="22,14" Click="InstallButton_Click"/>
+                                    <TextBlock Text="安装或卸载后需要重新启动炉石客户端。" Style="{StaticResource EffectTipStyle}" Margin="0,0,0,12"/>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="3*"/>
+                                            <ColumnDefinition Width="1.15*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Button x:Name="InstallButton"
+                                                Grid.Column="0"
+                                                Content="一键安装 / 更新 HsMod"
+                                                FontSize="18"
+                                                Padding="22,14"
+                                                Click="InstallButton_Click"
+                                                Margin="0,0,10,0"/>
+                                        <Button x:Name="UninstallButton"
+                                                Grid.Column="1"
+                                                Content="卸载 HsMod"
+                                                Style="{StaticResource DangerButtonStyle}"
+                                                Padding="18,14"
+                                                Click="UninstallButton_Click"/>
+                                    </Grid>
                                 </StackPanel>
                             </Border>
                         </StackPanel>
 
                         <Border Grid.Column="1" Style="{StaticResource CardStyle}">
                             <StackPanel>
-                                <TextBlock Text="安装日志" FontSize="18" FontWeight="Bold"/>
-                                <ListBox x:Name="InstallLogListBox" Height="430" Margin="0,12,0,0" BorderBrush="{StaticResource LineBrush}" ItemsSource="{Binding Logs}" DisplayMemberPath="Display"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="安装日志" FontSize="18" FontWeight="Bold" VerticalAlignment="Center"/>
+                                    <Button x:Name="CopyInstallLogButton"
+                                            Grid.Column="1"
+                                            Content="复制全部"
+                                            Style="{StaticResource SecondaryButtonStyle}"
+                                            Padding="12,6"
+                                            Click="CopyInstallLogButton_Click"/>
+                                </Grid>
+                                <TextBox x:Name="InstallLogTextBox"
+                                         Height="430"
+                                         Margin="0,12,0,0"
+                                         Padding="10"
+                                         IsReadOnly="True"
+                                         AcceptsReturn="True"
+                                         TextWrapping="NoWrap"
+                                         FontFamily="Microsoft YaHei UI"
+                                         Foreground="#294C6A"
+                                         VerticalContentAlignment="Top"
+                                         VerticalScrollBarVisibility="Auto"
+                                         HorizontalScrollBarVisibility="Auto"/>
                             </StackPanel>
                         </Border>
                     </Grid>
@@ -192,7 +281,7 @@
             </TabItem>
 
             <TabItem Header="实时配置">
-                <Grid>
+                <Grid Background="#F4F8F5">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
@@ -218,7 +307,7 @@
             </TabItem>
 
             <TabItem Header="皮肤切换">
-                <Grid>
+                <Grid Background="#F8F5FA">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
@@ -231,7 +320,10 @@
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            <TextBlock Text="皮肤设置" FontSize="18" FontWeight="Bold" VerticalAlignment="Center"/>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="皮肤设置" FontSize="18" FontWeight="Bold"/>
+                                <TextBlock Text="保存后会热加载并刷新当前场景，无需重启炉石；对局中可能发生一次自动重连。" Style="{StaticResource EffectTipStyle}"/>
+                            </StackPanel>
                             <Button x:Name="RefreshSkinListButton"
                                     Grid.Column="1"
                                     Content="刷新皮肤列表"
@@ -262,11 +354,9 @@
                                             <DataTemplate DataType="{x:Type models:ClassSkinSelection}">
                                                 <StackPanel Width="330" Margin="0,0,18,14">
                                                     <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" Margin="0,0,0,6"/>
-                                                    <ComboBox ItemsSource="{Binding Options}"
-                                                              DisplayMemberPath="Display"
-                                                              SelectedValuePath="Id"
-                                                              SelectedValue="{Binding SelectedId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                              IsEnabled="{Binding IsAvailable}"/>
+                                                    <controls:SearchableSkinComboBox ItemsSource="{Binding Options}"
+                                                                                       SelectedId="{Binding SelectedId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                                       IsEnabled="{Binding IsAvailable}"/>
                                                 </StackPanel>
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
@@ -280,35 +370,35 @@
                                     <UniformGrid Columns="2" Margin="0,14,0,0">
                                         <StackPanel Margin="0,0,12,12">
                                             <TextBlock Text="幸运币"/>
-                                            <ComboBox x:Name="CoinComboBox" DisplayMemberPath="Display" SelectedValuePath="Id" Tag="skinCoin"/>
+                                            <controls:SearchableSkinComboBox x:Name="CoinComboBox" Tag="skinCoin"/>
                                         </StackPanel>
                                         <StackPanel Margin="0,0,12,12">
                                             <TextBlock Text="卡背"/>
-                                            <ComboBox x:Name="CardBackComboBox" DisplayMemberPath="Display" SelectedValuePath="Id" Tag="skinCardBack"/>
+                                            <controls:SearchableSkinComboBox x:Name="CardBackComboBox" Tag="skinCardBack"/>
                                         </StackPanel>
                                         <StackPanel Margin="0,0,12,12">
                                             <TextBlock Text="游戏桌面 / 对战面板"/>
-                                            <ComboBox x:Name="BoardComboBox" DisplayMemberPath="Display" SelectedValuePath="Id" Tag="skinBoard"/>
+                                            <controls:SearchableSkinComboBox x:Name="BoardComboBox" Tag="skinBoard"/>
                                         </StackPanel>
                                         <StackPanel Margin="0,0,12,12">
                                             <TextBlock Text="酒馆战斗面板"/>
-                                            <ComboBox x:Name="BgsBoardComboBox" DisplayMemberPath="Display" SelectedValuePath="Id" Tag="skinBgsBoard"/>
+                                            <controls:SearchableSkinComboBox x:Name="BgsBoardComboBox" Tag="skinBgsBoard"/>
                                         </StackPanel>
                                         <StackPanel Margin="0,0,12,12">
                                             <TextBlock Text="酒馆击杀特效"/>
-                                            <ComboBox x:Name="BgsFinisherComboBox" DisplayMemberPath="Display" SelectedValuePath="Id" Tag="skinBgsFinisher"/>
+                                            <controls:SearchableSkinComboBox x:Name="BgsFinisherComboBox" Tag="skinBgsFinisher"/>
                                         </StackPanel>
                                         <StackPanel Margin="0,0,12,12">
                                             <TextBlock Text="鲍勃皮肤"/>
-                                            <ComboBox x:Name="BobComboBox" DisplayMemberPath="Display" SelectedValuePath="Id" Tag="skinBob"/>
+                                            <controls:SearchableSkinComboBox x:Name="BobComboBox" Tag="skinBob"/>
                                         </StackPanel>
                                         <StackPanel Margin="0,0,12,12">
                                             <TextBlock Text="宠物"/>
-                                            <ComboBox x:Name="PetComboBox" DisplayMemberPath="Display" SelectedValuePath="Id" Tag="skinPet"/>
+                                            <controls:SearchableSkinComboBox x:Name="PetComboBox" Tag="skinPet"/>
                                         </StackPanel>
                                         <StackPanel Margin="0,0,12,12">
                                             <TextBlock Text="对手宠物"/>
-                                            <ComboBox x:Name="OpposingPetComboBox" DisplayMemberPath="Display" SelectedValuePath="Id" Tag="skinOpposingPet"/>
+                                            <controls:SearchableSkinComboBox x:Name="OpposingPetComboBox" Tag="skinOpposingPet"/>
                                         </StackPanel>
                                     </UniformGrid>
                                 </StackPanel>
@@ -318,49 +408,6 @@
                 </Grid>
             </TabItem>
 
-            <TabItem Header="日志与桥接">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
-
-                    <Border Grid.Row="0" Style="{StaticResource CardStyle}">
-                        <WrapPanel>
-                            <Button x:Name="RefreshStatusButton" Content="刷新状态" Click="RefreshStatusButton_Click" Margin="0,0,10,0"/>
-                            <Button x:Name="ReadBepInExLogButton" Content="读取 BepInEx 最近日志" Style="{StaticResource SecondaryButtonStyle}" Click="ReadBepInExLogButton_Click" Margin="0,0,10,0"/>
-                            <Button x:Name="ReadMatchLogButton" Content="读取对局日志" Style="{StaticResource SecondaryButtonStyle}" Click="ReadMatchLogButton_Click" Margin="0,0,10,0"/>
-                            <Button x:Name="RestartWebButton" Content="重启插件 Web 服务" Style="{StaticResource SecondaryButtonStyle}" Click="RestartWebButton_Click"/>
-                        </WrapPanel>
-                    </Border>
-
-                    <Grid Grid.Row="1">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="0.9*"/>
-                            <ColumnDefinition Width="1.1*"/>
-                        </Grid.ColumnDefinitions>
-                        <Border Grid.Column="0" Style="{StaticResource CardStyle}" Margin="0,0,14,0">
-                            <StackPanel>
-                                <TextBlock Text="管理器日志" FontSize="18" FontWeight="Bold"/>
-                                <ListBox x:Name="MainLogListBox" ItemsSource="{Binding Logs}" DisplayMemberPath="Display" Margin="0,12,0,0"/>
-                            </StackPanel>
-                        </Border>
-                        <Border Grid.Column="1" Style="{StaticResource CardStyle}">
-                            <DockPanel>
-                                <TextBlock DockPanel.Dock="Top" Text="客户端日志 / 状态输出" FontSize="18" FontWeight="Bold" Margin="0,0,0,12"/>
-                                <TextBox x:Name="RemoteLogTextBox"
-                                         AcceptsReturn="True"
-                                         AcceptsTab="True"
-                                         IsReadOnly="True"
-                                         VerticalScrollBarVisibility="Auto"
-                                         HorizontalScrollBarVisibility="Auto"
-                                         TextWrapping="NoWrap"
-                                         FontFamily="Consolas"/>
-                            </DockPanel>
-                        </Border>
-                    </Grid>
-                </Grid>
-            </TabItem>
         </TabControl>
 
         <Border Grid.Row="2"
