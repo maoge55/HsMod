@@ -363,6 +363,7 @@ MigrationBackup/
 FodyWeavers.xsd
 
 .idea/
+.agents/
 
 # HsMod local build and release artifacts
 /dist/
