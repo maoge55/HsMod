@@ -112,7 +112,9 @@ public partial class LicenseWindow : Window
             licenseKey,
             true,
             string.IsNullOrWhiteSpace(saved.Status) ? "active" : saved.Status,
-            string.IsNullOrWhiteSpace(saved.Message) ? "卡密缓存有效。" : saved.Message,
+            string.IsNullOrWhiteSpace(saved.Message)
+                ? "卡密缓存有效。"
+                : LicenseClient.SanitizeUserMessage(saved.Message),
             expiresAtUtc,
             saved.ServerTimeUtc ?? checkedAtUtc,
             checkedAtUtc);

@@ -1232,7 +1232,9 @@ public partial class MainWindow : Window
                 BoardComboBox,
                 BgsBoardComboBox,
                 BgsFinisherComboBox,
-                BobComboBox
+                BobComboBox,
+                PetComboBox,
+                OpposingPetComboBox
             ];
 
             foreach (SearchableSkinComboBox comboBox in globalSkinCombos)
@@ -1242,6 +1244,13 @@ public partial class MainWindow : Window
                     string value = comboBox.SelectedId.ToString(CultureInfo.InvariantCulture);
                     await SaveRequiredConfigAsync(key, value, ct);
                 }
+            }
+
+            if (PetComboBox.SelectedId > 0)
+            {
+                // The upstream local Battlegrounds pet controller is intentionally gated by
+                // the local collection feature. Selecting a pet here is an explicit opt-in.
+                await SaveRequiredConfigAsync("isBgsUnlockCollectionEnable", "true", ct);
             }
 
             await SaveRequiredConfigAsync("skinHero", "-1", ct);
@@ -1263,7 +1272,7 @@ public partial class MainWindow : Window
             }
             else
             {
-                AddLog("皮肤已保存；英雄等对局资源将在下一局生效。宠物列表仅供识别，不进行本地强制切换。");
+                AddLog("皮肤已保存；英雄等对局资源将在下一局生效，宠物配置已按上游实现请求刷新。");
             }
 
             WpfMessageBox.Show("皮肤设置已保存并应用。", "应用成功", MessageBoxButton.OK, MessageBoxImage.Information);

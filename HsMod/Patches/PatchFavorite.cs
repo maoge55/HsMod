@@ -702,8 +702,8 @@ namespace HsMod
 
             public static void RefreshPetCorners()
             {
-                // A visible pet model still requires a server-created cosmetic entity.
-                // Only ask the game to refresh its native corner state here.
+                // Refresh the native corner state; the upstream local Battlegrounds pet
+                // controller fills in a missing friendly model during its regular tick.
                 CornerSpellReplacementManager manager = GameState.Get()?.GetCornerReplacementManager();
                 manager?.UpdateCornerReplacements();
             }

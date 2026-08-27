@@ -18,8 +18,26 @@ public static class LicenseClient
     public static string GetServerUrl()
     {
         // Keep the fixed endpoint out of UI, configuration files and logs.
-        byte[] address = [23, 94, 172, 238];
+        byte[] address = [43, 139, 90, 166];
         return $"http://{string.Join('.', address)}";
+    }
+
+    internal static string SanitizeUserMessage(string? message)
+    {
+        if (string.IsNullOrWhiteSpace(message))
+        {
+            return "";
+        }
+
+        string sanitized = message;
+        string serverUrl = GetServerUrl();
+        sanitized = sanitized.Replace(serverUrl, "授权服务", StringComparison.OrdinalIgnoreCase);
+        if (Uri.TryCreate(serverUrl, UriKind.Absolute, out Uri? serverUri))
+        {
+            sanitized = sanitized.Replace(serverUri.Host, "授权服务", StringComparison.OrdinalIgnoreCase);
+        }
+
+        return sanitized;
     }
 
     public static async Task<LicenseSession> ValidateAsync(
@@ -67,7 +85,7 @@ public static class LicenseClient
                 normalizedKey,
                 result.Valid,
                 result.Status ?? "",
-                result.Message ?? "",
+                SanitizeUserMessage(result.Message),
                 result.ExpiresAtUtc,
                 result.ServerTimeUtc,
                 DateTime.UtcNow);
