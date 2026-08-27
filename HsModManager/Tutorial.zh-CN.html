@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HsMod 全金插件｜保姆级使用教程</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --blue: #287bd5;
+      --blue-dark: #123b67;
+      --blue-soft: #eaf4ff;
+      --red: #f04444;
+      --green: #118b52;
+      --ink: #17324f;
+      --muted: #60758b;
+      --line: #dce8f4;
+      --paper: #ffffff;
+      --bg: #f1f6fb;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 8% 0%, #dcedff 0, transparent 27rem),
+        var(--bg);
+      font: 16px/1.7 "Microsoft YaHei UI", "Microsoft YaHei", system-ui, sans-serif;
+    }
+
+    .page {
+      width: min(1080px, calc(100% - 28px));
+      margin: 0 auto;
+      padding: 34px 0 56px;
+    }
+
+    .hero,
+    .step,
+    .help {
+      background: rgba(255, 255, 255, .96);
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      box-shadow: 0 14px 40px rgba(35, 83, 125, .09);
+    }
+
+    .hero {
+      overflow: hidden;
+      padding: 34px clamp(24px, 5vw, 54px);
+      border-top: 7px solid var(--blue);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 12px;
+      color: #086c3d;
+      background: #e7f9ef;
+      border: 1px solid #b9e8cd;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    h1 {
+      margin: 14px 0 7px;
+      color: var(--blue-dark);
+      font-size: clamp(30px, 5vw, 48px);
+      line-height: 1.18;
+      letter-spacing: -.04em;
+    }
+
+    .lead {
+      margin: 0;
+      color: var(--muted);
+      font-size: 18px;
+    }
+
+    .quick {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .quick div {
+      padding: 12px 14px;
+      background: var(--blue-soft);
+      border-radius: 14px;
+      text-align: center;
+      font-weight: 700;
+    }
+
+    .notice {
+      margin: 18px 0 0;
+      padding: 13px 16px;
+      color: #7f4800;
+      background: #fff7dd;
+      border-left: 5px solid #f3ad22;
+      border-radius: 10px;
+    }
+
+    .steps {
+      display: grid;
+      gap: 22px;
+      margin-top: 22px;
+    }
+
+    .step { padding: clamp(20px, 4vw, 36px); }
+
+    .step-head {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    .number {
+      flex: 0 0 42px;
+      display: grid;
+      width: 42px;
+      height: 42px;
+      place-items: center;
+      color: #fff;
+      background: var(--blue);
+      border-radius: 13px;
+      font-size: 22px;
+      font-weight: 900;
+      box-shadow: 0 8px 20px rgba(40, 123, 213, .28);
+    }
+
+    h2 {
+      margin: 0;
+      color: var(--blue-dark);
+      font-size: 25px;
+      line-height: 1.35;
+    }
+
+    .step-head p { margin: 3px 0 0; color: var(--muted); }
+
+    .shot {
+      margin: 18px 0 0;
+      overflow: hidden;
+      background: #e6eef7;
+      border: 1px solid #ccdaea;
+      border-radius: 16px;
+    }
+
+    .image-wrap { position: relative; line-height: 0; }
+
+    .image-wrap img {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    .mark {
+      position: absolute;
+      z-index: 2;
+      border: clamp(3px, .34vw, 5px) solid var(--red);
+      border-radius: 999px;
+      box-shadow: 0 0 0 4px rgba(255, 255, 255, .92), 0 0 18px rgba(240, 68, 68, .72);
+      pointer-events: none;
+      animation: pulse 1.8s ease-in-out infinite;
+    }
+
+    .pin {
+      position: absolute;
+      z-index: 3;
+      display: grid;
+      width: clamp(23px, 3.1vw, 35px);
+      aspect-ratio: 1;
+      place-items: center;
+      color: #fff;
+      background: var(--red);
+      border: 3px solid #fff;
+      border-radius: 50%;
+      font: 900 clamp(12px, 1.5vw, 18px)/1 system-ui, sans-serif;
+      box-shadow: 0 4px 12px rgba(114, 23, 23, .35);
+    }
+
+    @keyframes pulse {
+      50% { filter: brightness(1.12); transform: scale(1.018); }
+    }
+
+    .install-find { left: 43.8%; top: 32.3%; width: 8.1%; height: 6.1%; }
+    .install-find-pin { left: 42.8%; top: 29.8%; }
+    .install-button { left: 3.1%; top: 57.1%; width: 34.8%; height: 8.7%; border-radius: 18px; }
+    .install-button-pin { left: 2.2%; top: 54.4%; }
+    .install-status { left: 81.8%; top: 6.3%; width: 16.8%; height: 6.1%; }
+    .install-status-pin { left: 80.8%; top: 3.8%; }
+
+    .config-tab { left: 8.6%; top: 17.1%; width: 8.4%; height: 6.2%; }
+    .config-tab-pin { left: 7.6%; top: 14.5%; }
+    .config-group { left: 3.8%; top: 41.2%; width: 8.6%; height: 6.2%; }
+    .config-group-pin { left: 2.8%; top: 38.4%; }
+
+    .skin-choice { left: 3.3%; top: 45.1%; width: 29.4%; height: 6.5%; border-radius: 14px; }
+    .skin-choice-pin { left: 2.3%; top: 42.4%; }
+    .skin-save { left: 86.5%; top: 24.8%; width: 10.3%; height: 6.5%; border-radius: 14px; }
+    .skin-save-pin { left: 85.5%; top: 22.2%; }
+
+    figcaption {
+      padding: 11px 16px 13px;
+      color: #5b6f84;
+      background: #f8fbfe;
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin: 16px 0 0;
+      padding: 0;
+      list-style: none;
+      counter-reset: action;
+    }
+
+    .actions li {
+      position: relative;
+      padding: 13px 13px 13px 44px;
+      background: #f7faff;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      counter-increment: action;
+    }
+
+    .actions li::before {
+      content: counter(action);
+      position: absolute;
+      left: 12px;
+      top: 13px;
+      display: grid;
+      width: 23px;
+      height: 23px;
+      place-items: center;
+      color: #fff;
+      background: var(--red);
+      border-radius: 50%;
+      font-weight: 900;
+      line-height: 1;
+    }
+
+    .setting-demo {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      margin-top: 15px;
+      padding: 16px 18px;
+      background: #fffafa;
+      border: 2px solid #ffc8c8;
+      border-radius: 14px;
+    }
+
+    .setting-demo strong { font-size: 18px; }
+
+    .select-demo {
+      min-width: 190px;
+      padding: 10px 42px 10px 14px;
+      color: #9e1f1f;
+      background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16'%3E%3Cpath d='m4 6 4 4 4-4' fill='none' stroke='%239e1f1f' stroke-width='2'/%3E%3C/svg%3E") no-repeat calc(100% - 13px) center;
+      border: 3px solid var(--red);
+      border-radius: 10px;
+      font-weight: 900;
+      text-align: left;
+    }
+
+    .ok {
+      color: var(--green);
+      font-weight: 800;
+    }
+
+    .help {
+      margin-top: 22px;
+      padding: 24px clamp(20px, 4vw, 34px);
+    }
+
+    .help h2 { margin-bottom: 10px; }
+
+    .help ul {
+      margin: 0;
+      padding-left: 1.25em;
+    }
+
+    .footer {
+      margin-top: 18px;
+      color: #708297;
+      text-align: center;
+      font-size: 14px;
+    }
+
+    @media (max-width: 720px) {
+      .quick,
+      .actions { grid-template-columns: 1fr; }
+      .setting-demo { align-items: stretch; flex-direction: column; }
+      .select-demo { width: 100%; }
+      .step { padding: 18px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      .mark { animation: none; }
+    }
+
+    @media print {
+      body { background: #fff; }
+      .page { width: 100%; padding: 0; }
+      .hero, .step, .help { break-inside: avoid; box-shadow: none; }
+      .mark { animation: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="hero">
+      <span class="badge">✓ Windows 10 / 11 · 64 位</span>
+      <h1>HsMod 全金插件<br>保姆级使用教程</h1>
+      <p class="lead">完整解压、安装插件、开启全金、切换皮肤，照着红圈操作即可。</p>
+      <div class="quick" aria-label="教程流程">
+        <div>① 完整解压</div>
+        <div>② 一键安装</div>
+        <div>③ 开启全金</div>
+      </div>
+      <p class="notice"><strong>第一件事：</strong>不要在 ZIP 压缩包里直接运行。请先“全部解压”，再双击 <strong>HsModManager.exe</strong>；首次启动按提示输入 8 位卡密。</p>
+    </header>
+
+    <div class="steps">
+      <section class="step">
+        <div class="step-head">
+          <span class="number">1</span>
+          <div>
+            <h2>一键安装插件</h2>
+            <p>安装或更新前先完全退出炉石，避免正在使用的插件文件被锁定。</p>
+          </div>
+        </div>
+        <ol class="actions">
+          <li>点“自动寻找”，找不到再手动“选择目录”。</li>
+          <li>确认是炉石根目录，点“一键安装 / 更新”。</li>
+          <li>启动炉石；右上角变成绿色“已连接”即成功。</li>
+        </ol>
+        <figure class="shot">
+          <div class="image-wrap">
+            <img src="TutorialAssets/01-install.png" alt="HsMod Manager 一键安装页面">
+            <span class="mark install-find"></span><span class="pin install-find-pin">1</span>
+            <span class="mark install-button"></span><span class="pin install-button-pin">2</span>
+            <span class="mark install-status"></span><span class="pin install-status-pin">3</span>
+          </div>
+          <figcaption>红圈 1：寻找目录　红圈 2：安装/更新　红圈 3：连接成功状态</figcaption>
+        </figure>
+      </section>
+
+      <section class="step">
+        <div class="step-head">
+          <span class="number">2</span>
+          <div>
+            <h2>开启“全金”效果</h2>
+            <p>先确保右上角显示已连接，再按下面的设置进入。</p>
+          </div>
+        </div>
+        <ol class="actions">
+          <li>打开“实时配置”页。</li>
+          <li>点击“炉石（18）”展开该分组。</li>
+          <li>找到“金卡特效”，选择“全部生效”。</li>
+        </ol>
+        <figure class="shot">
+          <div class="image-wrap">
+            <img src="TutorialAssets/02-full-gold.png" alt="HsMod Manager 实时配置页面">
+            <span class="mark config-tab"></span><span class="pin config-tab-pin">1</span>
+            <span class="mark config-group"></span><span class="pin config-group-pin">2</span>
+          </div>
+          <figcaption>展开“炉石”后向下找到金卡特效。若页面没有配置，点右上角“重新读取配置”。</figcaption>
+        </figure>
+        <div class="setting-demo" aria-label="全金设置示例">
+          <div><strong>金卡特效</strong><br><span>强制金卡特效</span></div>
+          <div class="select-demo">全部生效</div>
+        </div>
+        <p class="ok">完成：进入对局后，友方和对手卡牌都会按全金效果显示。</p>
+      </section>
+
+      <section class="step">
+        <div class="step-head">
+          <span class="number">3</span>
+          <div>
+            <h2>按需切换英雄皮肤</h2>
+            <p>这是可选步骤；不想换皮肤就保持“保持游戏选择”。</p>
+          </div>
+        </div>
+        <ol class="actions">
+          <li>打开“皮肤切换”页。</li>
+          <li>在对应职业下拉框选择皮肤。</li>
+          <li>点“保存并应用”，下一局生效。</li>
+        </ol>
+        <figure class="shot">
+          <div class="image-wrap">
+            <img src="TutorialAssets/03-skins.png" alt="HsMod Manager 皮肤切换页面">
+            <span class="mark skin-choice"></span><span class="pin skin-choice-pin">1</span>
+            <span class="mark skin-save"></span><span class="pin skin-save-pin">2</span>
+          </div>
+          <figcaption>游戏更新并新增皮肤后，可先点“刷新皮肤列表”，再重新选择和保存。</figcaption>
+        </figure>
+      </section>
+    </div>
+
+    <section class="help">
+      <h2>遇到问题先看这里</h2>
+      <ul>
+        <li><strong>一直未连接：</strong>先启动炉石；刚安装/更新过插件时，完整退出炉石后重新启动。</li>
+        <li><strong>设置没变化：</strong>确认右上角为绿色“已连接”，再点“重新读取配置”；部分效果需下一局或重启炉石。</li>
+        <li><strong>管理器打不开：</strong>确认已经完整解压，并保留 EXE、Payload、TutorialAssets 在同一目录结构中。</li>
+      </ul>
+    </section>
+
+    <p class="footer">HsMod Manager 离线教程 · 图片和样式均保存在安装包内，无需联网打开</p>
+  </main>
+</body>
+</html>

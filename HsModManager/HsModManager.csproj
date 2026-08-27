@@ -23,6 +23,14 @@
              Link="README.zh-CN.txt"
              CopyToOutputDirectory="PreserveNewest"
              CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="Tutorial.zh-CN.html"
+             Link="使用教程.html"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="TutorialAssets\*.png"
+             Link="TutorialAssets\%(Filename)%(Extension)"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
     <Content Include="Payload\BepInEx_win_x64_*.zip"
              Link="Payload\%(Filename)%(Extension)"
              CopyToOutputDirectory="PreserveNewest"

@@ -88,7 +88,7 @@
                IsOpen="{Binding IsChecked, ElementName=DropDownToggle, Mode=TwoWay}"
                PlacementTarget="{Binding ElementName=DropDownToggle}"
                Placement="Bottom"
-               StaysOpen="False"
+               StaysOpen="True"
                AllowsTransparency="True"
                PopupAnimation="Fade"
                Opened="DropDownPopup_Opened">

@@ -42,7 +42,11 @@ $requiredFiles = @(
     (Join-Path $publishDir "HsModManager.exe"),
     (Join-Path $publishDir "Payload\HsMod.dll"),
     (Join-Path $publishDir "Payload\UnstrippedCorlib\mscorlib.dll"),
-    (Join-Path $publishDir "README.zh-CN.txt")
+    (Join-Path $publishDir "README.zh-CN.txt"),
+    (Join-Path $publishDir "使用教程.html"),
+    (Join-Path $publishDir "TutorialAssets\01-install.png"),
+    (Join-Path $publishDir "TutorialAssets\02-full-gold.png"),
+    (Join-Path $publishDir "TutorialAssets\03-skins.png")
 )
 
 foreach ($file in $requiredFiles) {

@@ -23,10 +23,13 @@ public partial class SearchableSkinComboBox : System.Windows.Controls.UserContro
 
     private List<SkinItem> _allItems = [];
     private bool _isUpdatingSelection;
+    private Window? _ownerWindow;
 
     public SearchableSkinComboBox()
     {
         InitializeComponent();
+        Loaded += SearchableSkinComboBox_Loaded;
+        Unloaded += SearchableSkinComboBox_Unloaded;
     }
 
     public IEnumerable? ItemsSource
@@ -96,7 +99,7 @@ public partial class SearchableSkinComboBox : System.Windows.Controls.UserContro
 
     private void OptionsList_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (_isUpdatingSelection || DropDownPopup.IsOpen != true || OptionsList.SelectedItem is not SkinItem selected)
+        if (_isUpdatingSelection || e.AddedItems.Count == 0 || e.AddedItems[0] is not SkinItem selected)
         {
             return;
         }
@@ -128,5 +131,55 @@ public partial class SearchableSkinComboBox : System.Windows.Controls.UserContro
                 OptionsList.ScrollIntoView(OptionsList.SelectedItem);
             }
         }, DispatcherPriority.Input);
+    }
+
+    private void SearchableSkinComboBox_Loaded(object sender, RoutedEventArgs e)
+    {
+        Window? ownerWindow = Window.GetWindow(this);
+        if (ReferenceEquals(ownerWindow, _ownerWindow))
+        {
+            return;
+        }
+
+        DetachOwnerWindow();
+        _ownerWindow = ownerWindow;
+        if (_ownerWindow != null)
+        {
+            _ownerWindow.PreviewMouseDown += OwnerWindow_PreviewMouseDown;
+            _ownerWindow.Deactivated += OwnerWindow_Deactivated;
+        }
+    }
+
+    private void SearchableSkinComboBox_Unloaded(object sender, RoutedEventArgs e)
+    {
+        DropDownToggle.IsChecked = false;
+        DetachOwnerWindow();
+    }
+
+    private void OwnerWindow_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (!DropDownPopup.IsOpen || DropDownToggle.IsMouseOver || DropDownPopup.Child?.IsMouseOver == true)
+        {
+            return;
+        }
+
+        DropDownToggle.IsChecked = false;
+    }
+
+    private void OwnerWindow_Deactivated(object? sender, EventArgs e)
+    {
+        DropDownToggle.IsChecked = false;
+    }
+
+    private void DetachOwnerWindow()
+    {
+        if (_ownerWindow == null)
+        {
+            return;
+        }
+
+        _ownerWindow.PreviewMouseDown -= OwnerWindow_PreviewMouseDown;
+        _ownerWindow.Deactivated -= OwnerWindow_Deactivated;
+        _ownerWindow = null;
     }
 }
